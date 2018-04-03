@@ -4,7 +4,7 @@ using namespace Rcpp;
 //=========================================================================================
 #define tiny 1e-30
 #define epsilon 1e-6
-// functions used in smpqrs
+// functions used in pbssim
 NumericMatrix bsplines(NumericVector x, NumericVector t, int degree, int derivative);
 NumericVector bspline(NumericVector x, NumericVector t, int degree, int j, int derivative);
 double bsp(double x, NumericVector t, int degree, int j);
@@ -33,28 +33,29 @@ NumericVector alpha2xi(NumericVector alpha);
 NumericVector xi2alpha(NumericVector xi);
 NumericVector deriv_xi_j(NumericVector xi, NumericVector alpha, int j);
 double atan4(double y, double x);
-//=========================================================================================
+//===================================================================================
 // Main function
-// Single Index Model using B-splines and Polar Coordinate
+// Locally Penalized Single Index Model using B-splines and Spherical Coordinates
 // [[Rcpp::export]]
-List BPSI(NumericVector responses,
-          NumericMatrix predictors,
-          NumericVector initial_alpha,
-          int           degree,
-          int           number_interior_knots,
-          int           number_lambdas_alpha,
-          int           number_lambdas_beta,
-          double        lambda_alpha_max = 100,
-          double        lambda_beta_max = 10,
-          double        epsilon_lambda = 1e-6,
-          int           maxiter = 200,
-          double        epsilon_iterations = 1e-4)
+List pbssim(NumericVector responses,
+            NumericMatrix predictors,
+            NumericVector initial_alpha,
+            int           degree,
+            int           number_interior_knots,
+            int           number_lambdas_alpha,
+            int           number_lambdas_beta,
+            double        lambda_alpha_max = 100,
+            double        lambda_beta_max = 10,
+            double        epsilon_lambda = 1e-6,
+            int           maxiter = 200,
+            double        epsilon_iterations = 1e-4)
 {
-   Rcout << "=============================================================\n";
-   Rcout << "Single Index Model using B-splines and Spherical Coordinates\n";
-   Rcout << "Version 1.0 by SDMLAB (January 17, 2018)\n";
+   Rcout << "=================================================\n";
+   Rcout << "Locally penalized Single Index Model\n";
+   Rcout << "using B-splines and Spherical Coordinates\n";
+   Rcout << "Version 0.1 by SDMLAB (April 02, 2018)\n";
    Rcout << "Department of Statistics, Korea University, Korea\n";
-   Rcout << "=============================================================\n";
+   Rcout << "=================================================\n";
    List results(number_lambdas_alpha + 1);
    List results_beta(number_lambdas_beta);
    // setup
@@ -73,7 +74,6 @@ List BPSI(NumericVector responses,
    int j, k, m;
    int iter, iter_alpha, iter_beta;
    IntegerVector xi_index(p);
-   //IntegerVector active_xi_index(p);
    // initial coefficients
    NumericVector initial_xi = alpha2xi(initial_alpha);
    NumericVector xi = clone(initial_xi);
@@ -91,7 +91,8 @@ List BPSI(NumericVector responses,
    NumericVector am(sample_size);
    NumericVector partial_residuals(sample_size);
    NumericVector delta(sample_size);
-   double b, c, R, R_beta, lambda_alpha, lambda_beta, solution_alpha, alpha_star_points, alpha_star;
+   double b, c, R, R_beta, lambda_alpha, lambda_beta;
+   double solution_alpha, alpha_star_points, alpha_star;
    double store_R = R_PosInf;
    double store_R_beta = R_PosInf;
    double store_store_R_beta = R_PosInf;
@@ -134,7 +135,6 @@ List BPSI(NumericVector responses,
       NumericMatrix basis = clone(initial_basis);
       NumericMatrix jump = clone(initial_jump);
       residuals = clone(responses);
-      // fitted_value = clone(responses);
       R = 0.0;
       store_R = R_PosInf;
       store_R_beta = R_PosInf;
@@ -156,7 +156,6 @@ List BPSI(NumericVector responses,
                // Module UPDATE beta
                for (j = 0; j < dimension; j++)
                {
-                  //a = bspline(dot_products, t, degree, j, 0);
                   bj = basis(_, j);
                   partial_residuals = residuals + beta[j] * bj;
                   b = sum(bj * bj);
@@ -333,12 +332,9 @@ List BPSI(NumericVector responses,
             }
             basis = bsplines(dot_products, t, degree, 0);
          }
-         // Rcout << "iter = " << iter << std::endl;
          // Results
          bic_matrix(lambda_index_alpha, lambda_index_beta) = sample_size * log(sum(pow(residuals, 2.0)) / sample_size) + (dimension + active_p) * log(sample_size);
          aic_matrix(lambda_index_alpha, lambda_index_beta) = sample_size * log(sum(pow(residuals, 2.0)) / sample_size) + (dimension + active_p) * 2.0;
-         // final alpha ?
-         //alpha = xi2alpha(xi);
          results_beta[lambda_index_beta] = List::create(_["beta"] = clone(beta),
                                                         _["xi"] = clone(xi),
                                                         _["dimension"] = dimension,
@@ -733,7 +729,6 @@ NumericVector lambdas_all_alpha(int number_lambdas_alpha,
    // observe log l_1 = log l_K and log l_K = log l_1
    NumericVector lambdas_all(number_lambdas_alpha);
    double lambda_min = epsilon_lambda * lambda_alpha_max;
-   //lambda_min = 1e-3;
    // lambda_max/lambda_min = 1 / epsilon_lambda = ratio_max_min
    double ratio_max_min = 1.0 / epsilon_lambda;
    double div, exponent;
@@ -806,8 +801,6 @@ NumericVector xi2alpha(NumericVector xi)
       for (int j = 0; j < m; j++)
          c /= (sin(alpha[j]) + 1e-10);
       alpha[m] = acos(c);
-      //Rcout << "c = " << c << std::endl;
-      //Rcout << "alpha[m] = " << alpha[m] << std::endl;
    }
    // alpha[pm1]
    alpha[pm1 - 1] = atan4(xi[0], xi[1]);
@@ -900,8 +893,3 @@ double atan4(double y, double x)
    return atan_yx;
 }
 //=========================================================================================
-// [[Rcpp::export]]
-IntegerVector test_11(int a)
-{
-   return seq(0, a);
-}
