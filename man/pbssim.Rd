@@ -33,7 +33,7 @@ list is the order of lambda alpha, second index means the order of
 lambda beta. For example, \code{result[[i]][[j]]} indicates the fit of
 \eqn{i} th lambda alpha and \eqn{j} th lambda beta.
 Last index of the list contains the meta data such as
-BIC, AIC, lambda sequence}
+BIC, AIC, lambda sequence.}
 
 \description{
 \code{bpssim} fits \code{bpssim} given data.}
@@ -46,7 +46,7 @@ coordinates reparameterization. Two tuning parameters controls
 index sparsity and function smoothing each.
 Total variation penalty is adopted for function smoothing,
 and local penalty is adopted for variable selection.
-For more details, see Jhong et al(2018).
+For more details, see Jhong et al(2019).
 }
 
 \author{
